@@ -1,5 +1,6 @@
 import pygame
 from sys import *
+from random import randint, uniform
 
 class Ship(pygame.sprite.Sprite):
     def __init__(self, groups, can_shoot, shoot_time):
@@ -41,7 +42,6 @@ class Ship(pygame.sprite.Sprite):
             self.laser_shoot()
             self.laser_timer()
 
-
 class Laser(pygame.sprite.Sprite):
     def __init__(self, pos, groups,):
 
@@ -56,10 +56,39 @@ class Laser(pygame.sprite.Sprite):
         self.direction = pygame.math.Vector2(0, -1)
         self.speed = 600
 
-    
     def update(self):
         self.pos += self.direction * self.speed * dt
         self.rect.topleft = (round(self.pos.x),round(self.pos.y))
+
+class Asteroid(pygame.sprite.Sprite):
+    def __init__(self, pos, groups):
+        super().__init__(groups)
+
+        self.image = pygame.image.load('../graphics/meteor.png').convert_alpha()
+
+    
+
+        self.rect = self.image.get_rect(center = pos)
+
+        self.pos = pygame.math.Vector2(self.rect.topleft)
+        self.direction = pygame.math.Vector2(uniform(-0.5, 0.5), +1)
+        self.speed = randint(400, 600)
+
+    def update(self):
+        self.pos += self.direction * self.speed * dt
+        self.rect.topleft = (round(self.pos.x), round(self.pos.y))
+
+class Score:
+    def __init__(self):
+        self.font = pygame.font.Font('../graphics/subatomic.ttf', 50)
+
+    def display(self):
+        score_text = f'Score: {pygame.time.get_ticks() // 1000}'
+        text_surf = self.font.render(score_text, True, (255, 255, 255))
+        text_rect = text_surf.get_rect(midbottom = (window_width / 2, window_height - 80))
+        display_surf.blit(text_surf, text_rect)
+        pygame.draw.rect(display_surf, (255, 255, 255), text_rect.inflate(30, 30), width = 8, border_radius= 10)
+
 
 # basic setup
 pygame.init()
@@ -74,9 +103,15 @@ background_surf = pygame.image.load('../graphics/background.png').convert()
 # sprite groups
 spaceship_group = pygame.sprite.Group()
 laser_group = pygame.sprite.Group()
+asteroid_group = pygame.sprite.Group()
+
+# asteroid timer
+asteroid_timer = pygame.event.custom_type()
+pygame.time.set_timer(asteroid_timer, 500)
 
 # sprite creation
 ship = Ship(spaceship_group, True, None)
+score = Score()
 
 # game loop
 while True:
@@ -86,6 +121,11 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
+        
+        if event.type == asteroid_timer:
+            x_asteroid_pos = randint(-100, window_width + 100)
+            y_asteroid_pos = randint(-100, -50)
+            Asteroid((x_asteroid_pos, y_asteroid_pos), asteroid_group)
     
     # delta time
     dt = clock.tick() / 1000
@@ -96,10 +136,16 @@ while True:
     # update
     spaceship_group.update()
     laser_group.update()
+    asteroid_group.update()
+
+    # score
+    score.display()
 
     # graphics
     spaceship_group.draw(display_surf)
     laser_group.draw(display_surf)
+    asteroid_group.draw(display_surf)
+  
 
     # draw the frame
     pygame.display.update()
